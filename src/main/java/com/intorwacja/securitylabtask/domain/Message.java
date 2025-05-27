@@ -19,5 +19,7 @@ public class Message {
     @Setter(value = AccessLevel.NONE)
     private UUID id;
 
+
+    @Column(nullable = false)
     private String message;
 }
