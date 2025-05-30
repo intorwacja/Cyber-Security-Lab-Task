@@ -1,6 +1,6 @@
 package com.intorwacja.securitylabtask.validation;
 
-import com.intorwacja.securitylabtask.dto.UserRequest;
+import com.intorwacja.securitylabtask.dto.RegisterRequest;
 import com.intorwacja.securitylabtask.exceptions.UserValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,14 +11,14 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class UserValidatorService {
+public class RegisterValidatorService {
 
-    private final Collection<UserValidator> validators;
+    private final Collection<RegisterValidator> validators;
 
-    public void validate(UserRequest userRequest) {
+    public void validate(RegisterRequest registerRequest) {
         Map<String, String> errors = new HashMap<>();
 
-        validators.forEach(validator -> errors.putAll(validator.validate(userRequest)));
+        validators.forEach(validator -> errors.putAll(validator.validate(registerRequest)));
 
         if (!errors.isEmpty()) {
             throw new UserValidationException(errors);

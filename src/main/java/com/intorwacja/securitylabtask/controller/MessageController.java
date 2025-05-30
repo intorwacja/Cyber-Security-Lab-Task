@@ -9,9 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("api/v1/messages")
+@RequestMapping("/api/v1/messages")
 @RequiredArgsConstructor
 public class MessageController {
 
@@ -26,6 +27,13 @@ public class MessageController {
     @GetMapping()
     @ResponseStatus(HttpStatus.OK)
     public List<MessageResponse> getMessages() {
+        //TODO: Return only messages for current user!!!!!!
         return messageService.getMessages();
+    }
+
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public MessageResponse getMessage(@PathVariable UUID id) {
+        return messageService.getMessage(id);
     }
 }
