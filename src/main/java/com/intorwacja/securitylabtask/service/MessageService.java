@@ -21,13 +21,15 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final EncryptionService encryptionService;
     private final UserRepository userRepository;
+    private final XSSProtectionService xssProtectionService;
 
     public MessageResponse createMessage(MessageRequest messageRequest) {
-
         User user = userRepository.findById(messageRequest.userId()).orElseThrow();
 
+        String sanitizedMessage = xssProtectionService.sanitizeInput(messageRequest.message());
+
         Message createdMessage = Message.builder()
-                .message(encryptionService.encrypt(messageRequest.message()))
+                .message(encryptionService.encrypt(sanitizedMessage))
                 .user(user)
                 .build();
 
@@ -40,35 +42,49 @@ public class MessageService {
     }
 
     public List<MessageResponse> getMessages() {
-        return messageRepository.findAll().stream()
-                .map(message -> new MessageResponse(
-                        message.getId(),
-                        encryptionService.decrypt(message.getMessage())
-                )).collect(Collectors.toList());
+        String currentUserUsername = getCurrentUserUsername();
+
+        return messageRepository.findAllByUserUsername(currentUserUsername).stream()
+                .map(message -> {
+                    String decryptedMessage = encryptionService.decrypt(message.getMessage());
+                    String sanitizedMessage = xssProtectionService.sanitizeOutput(decryptedMessage);
+                    return new MessageResponse(message.getId(), sanitizedMessage);
+                }).collect(Collectors.toList());
     }
 
     public MessageResponse getMessage(UUID messageId) {
         Message message = messageRepository.findById(messageId).orElseThrow();
-
-        String currentUserUsername = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        System.out.println("Current user email: " + currentUserUsername);
-        System.out.println("Message owner email: " + message.getUser().getUsername());
-        System.out.println("Are emails equal? " + message.getUser().getUsername().equals(currentUserUsername));
+        String currentUserUsername = getCurrentUserUsername();
 
         if (!isMessageOwner(message, currentUserUsername)) {
             throw new SecurityException("No access to the message.");
         }
 
-        return new MessageResponse(
-                messageId,
-                encryptionService.decrypt(message.getMessage())
-        );
+        String decryptedMessage = encryptionService.decrypt(message.getMessage());
+        String sanitizedMessage = xssProtectionService.sanitizeOutput(decryptedMessage);
+
+        return new MessageResponse(messageId, sanitizedMessage);
     }
 
     private boolean isMessageOwner(Message message, String currentUserUsername) {
         return message.getUser().getUsername().equals(currentUserUsername);
+    }
+
+    private String getCurrentUserUsername() {
+        return SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+    }
+
+    public void deleteMessage(UUID id) {
+        Message message = messageRepository.findById(id).orElseThrow();
+
+        String currentUserUsername = getCurrentUserUsername();
+
+        if (!isMessageOwner(message, currentUserUsername)) {
+            throw new SecurityException("No access to the message.");
+        }
+
+        messageRepository.delete(message);
     }
 }

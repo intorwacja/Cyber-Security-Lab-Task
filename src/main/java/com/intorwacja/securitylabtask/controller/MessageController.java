@@ -27,7 +27,6 @@ public class MessageController {
     @GetMapping()
     @ResponseStatus(HttpStatus.OK)
     public List<MessageResponse> getMessages() {
-        //TODO: Return only messages for current user!!!!!!
         return messageService.getMessages();
     }
 
@@ -35,5 +34,11 @@ public class MessageController {
     @ResponseStatus(HttpStatus.OK)
     public MessageResponse getMessage(@PathVariable UUID id) {
         return messageService.getMessage(id);
+    }
+
+    @DeleteMapping("{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMessage(@PathVariable UUID id) {
+        messageService.deleteMessage(id);
     }
 }

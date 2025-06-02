@@ -7,6 +7,9 @@ import com.intorwacja.securitylabtask.dto.RegisterRequest;
 import com.intorwacja.securitylabtask.dto.RegisterResponse;
 import com.intorwacja.securitylabtask.repository.UserRepository;
 import com.intorwacja.securitylabtask.validation.RegisterValidatorService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,7 +22,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RegisterValidatorService registerValidatorService;
 
-    public LoginResponse login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
         User user = userRepository.findByEmail(loginRequest.email()).orElseThrow();
 
         if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
@@ -27,7 +30,17 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user);
-        return new LoginResponse(user.getId(), user.getUsername(), token);
+
+        Cookie tokenCookie = new Cookie("authToken", token);
+        tokenCookie.setHttpOnly(true);
+        tokenCookie.setSecure(false); //TODO: change to true when using HTTPS
+        tokenCookie.setPath("/");
+        tokenCookie.setMaxAge(24 * 60 * 60);
+
+        response.addCookie(tokenCookie);
+
+
+        return new LoginResponse(user.getId(), user.getUsername());
     }
 
     public RegisterResponse register(RegisterRequest registerRequest) {
@@ -45,5 +58,15 @@ public class AuthService {
                 user.getUsername(),
                 user.getEmail()
         );
+    }
+
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        Cookie tokenCookie = new Cookie("authToken", null);
+        tokenCookie.setMaxAge(0);
+        tokenCookie.setHttpOnly(true);
+        tokenCookie.setSecure(false);
+        tokenCookie.setPath("/");
+
+        response.addCookie(tokenCookie);
     }
 }
